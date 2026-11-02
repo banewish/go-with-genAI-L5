@@ -1,35 +1,31 @@
-// Command app — тонкий main.go, що лише "з'єднує" (wiring) пакунки
-// calculator та textanalyzer. Уся бізнес-логіка живе в internal/.
+// Command app runs the demo application.
+//
+// This thin main.go serves only to:
+// 1. Create and wire the application (dependency injection)
+// 2. Call the appropriate handlers
+// 3. Handle top-level errors
+//
+// All business logic is organized in internal/ packages following a layered architecture:
+//   - app/: Application wiring and initialization
+//   - handlers/: Request handlers (entry points for operations)
+//   - service/: Business logic layer with demo, calculator, and text analyzer services
+//   - calculator/ & textanalyzer/: Domain packages with core functionality
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
-	"github.com/softserve/go-with-genai-topic4-error-handling/task0_refactor/internal/calculator"
-	"github.com/softserve/go-with-genai-topic4-error-handling/task0_refactor/internal/textanalyzer"
+	"github.com/softserve/go-with-genai-topic4-error-handling/task0_refactor/internal/app"
 )
 
 func main() {
-	sum := calculator.Add(2, 3)
-	fmt.Println("2 + 3 =", sum)
+	// Step 1: Wire all dependencies via App factory
+	application := app.New()
 
-	quotient, err := calculator.Divide(10, 0)
-	if err != nil {
-		if errors.Is(err, calculator.ErrDivisionByZero) {
-			fmt.Println("division by zero was correctly detected:", err)
-		} else {
-			fmt.Fprintln(os.Stderr, "unexpected error:", err)
-		}
-	} else {
-		fmt.Println("10 / 0 =", quotient)
+	// Step 2: Execute the orchestrated demos via handler
+	if err := application.DemoHandler.HandleRunAllDemos(); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
 	}
-
-	words, err := textanalyzer.WordCount("the quick brown fox")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "unexpected error:", err)
-		return
-	}
-	fmt.Println("word count:", words)
 }
